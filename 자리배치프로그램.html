@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이주한쌤 사랑해용~</title>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<style>
+body {
+  font-family: sans-serif;
+  padding: 20px;
+  background: linear-gradient(135deg, #FFB6C1, #F4B4C4, #F6B8B8);
+  display: flex;
+  justify-content: space-between;
+}
+
+.left { width: 60%; }
+.right { width: 35%; text-align: center; }
+
+.banner { width: 100%; border-radius: 12px; margin-bottom: 15px; }
+
+.grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.seat {
+  border: 1px solid #333;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  font-weight: bold;
+  cursor: grab;
+  border-radius: 10px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.seat:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.seat.selected {
+  background: #ffe4e1;
+  border: 2px solid #ff69b4;
+}
+
+textarea { width: 100%; height: 200px; }
+
+button {
+  margin: 5px;
+  border-radius: 8px;
+  padding: 8px 12px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.row { display: flex; justify-content: center; gap: 15px; }
+.footer { margin-top: 10px; font-style: italic; color: #333; }
+</style>
+</head>
+<body>
+
+<div class="left">
+  <h2> ❤️핑크핑크 자리배치 프로그램❤️</h2>
+
+  <label>학생 수: </label>
+  <input type="number" id="count" value="30">
+  <button onclick="generateList()">리스트 생성</button>
+  <button onclick="saveData()">저장</button>
+  <button onclick="loadData()">불러오기</button>
+
+  <h3>번호 / 이름 입력</h3>
+  <textarea id="list"></textarea>
+
+  <div id="seatArea" class="grid"></div>
+</div>
+
+<div class="right">
+  <img src="banner_juhan.jpg" class="banner">
+
+  <label>행: </label><input type="number" id="rows" value="5"><br>
+  <label>열: </label><input type="number" id="cols" value="6"><br>
+
+  <div class="row">
+    <button id="shuffleBtn" onclick="countdownShuffle()">랜덤 배치</button>
+    <button onclick="adminPrompt()">ADMIN</button>
+  </div>
+
+  <div class="row">
+    <button onclick="saveImage()">이미지 저장</button>
+    <button onclick="window.print()">출력</button>
+    <button onclick="toggleFullScreen()">전체화면</button>
+  </div>
+
+  <div class="footer">답답해서 내가 만든다! made by @workethic._</div>
+</div>
+
+<script>
+let students = [];
+let fixedPairs = [];
+let avoidPairs = [];
+let dragIndex = null;
+let touchIndex = null;
+
+function generateList() {
+  const count = document.getElementById('count').value;
+  let text = '';
+  for (let i = 1; i <= count; i++) {
+    text += String(i).padStart(2,'0') + ' \n';
+  }
+  document.getElementById('list').value = text;
+}
+
+function parseList() {
+  const lines = document.getElementById('list').value.trim().split('\n');
+  students = lines.map(line => {
+    const parts = line.trim().split(' ');
+    return { num: parts[0], name: parts[1] || '' };
+  });
+}
+
+function countdownShuffle() {
+  let count = 5;
+  const btn = document.getElementById('shuffleBtn');
+  btn.disabled = true;
+
+  const interval = setInterval(() => {
+    btn.innerText = count;
+    count--;
+
+    if (count === 0) {
+      clearInterval(interval);
+      btn.innerText = '랜덤 배치';
+      btn.disabled = false;
+      shuffleSeats();
+    }
+  }, 1000);
+}
+
+function shuffleSeats() {
+  parseList();
+
+  let valid = false;
+
+  while (!valid) {
+    for (let i = students.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [students[i], students[j]] = [students[j], students[i]];
+    }
+
+    applyPerfectMatching();
+    valid = checkAvoid();
+  }
+
+  drawSeats(true);
+  autoSave();
+}
+
+function applyPerfectMatching() {
+  const cols = parseInt(document.getElementById('cols').value);
+  let placed = new Set();
+
+  fixedPairs.forEach(pair => {
+    const a = pair[0];
+    const b = pair[1];
+
+    if (a >= students.length || b >= students.length) return;
+    if (placed.has(a) || placed.has(b)) return;
+
+    for (let i = 0; i < students.length; i++) {
+      if ((i + 1) % cols === 0) continue;
+      if (placed.has(i) || placed.has(i+1)) continue;
+
+      [students[i], students[a]] = [students[a], students[i]];
+      [students[i+1], students[b]] = [students[b], students[i+1]];
+
+      placed.add(i);
+      placed.add(i+1);
+      break;
+    }
+  });
+}
+
+function checkAvoid() {
+  const cols = parseInt(document.getElementById('cols').value);
+
+  for (let i = 0; i < students.length; i++) {
+    if ((i + 1) % cols === 0) continue;
+
+    for (let pair of avoidPairs) {
+      if ((pair[0] === i && pair[1] === i+1) || (pair[1] === i && pair[0] === i+1)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function drawSeats(animate=false) {
+  const cols = document.getElementById('cols').value;
+  const grid = document.getElementById('seatArea');
+
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  grid.innerHTML = '';
+
+  students.forEach((s, index) => {
+    const div = document.createElement('div');
+    div.className = 'seat';
+    div.draggable = true;
+    div.innerText = s.num + ' ' + s.name;
+
+    if (animate) {
+      div.style.transform = 'scale(0.5)';
+      setTimeout(() => {
+        div.style.transform = 'scale(1)';
+      }, 50);
+    }
+
+    div.addEventListener('click', () => {
+      document.querySelectorAll('.seat').forEach(el => el.classList.remove('selected'));
+      div.classList.add('selected');
+    });
+
+    // PC drag
+    div.addEventListener('dragstart', () => dragIndex = index);
+    div.addEventListener('dragover', (e) => e.preventDefault());
+    div.addEventListener('drop', () => handleSwap(index));
+
+    // Mobile touch
+    div.addEventListener('touchstart', () => touchIndex = index);
+    div.addEventListener('touchend', () => {
+      if (touchIndex !== null && touchIndex !== index) {
+        handleSwap(index);
+      }
+      touchIndex = null;
+    });
+
+    grid.appendChild(div);
+  });
+}
+
+function handleSwap(targetIndex) {
+  if (dragIndex === null && touchIndex === null) return;
+  const from = dragIndex ?? touchIndex;
+
+  const pair = fixedPairs.find(p => p.includes(from));
+  if (pair) {
+    alert('짝은 이동 불가');
+    return;
+  }
+
+  [students[from], students[targetIndex]] = [students[targetIndex], students[from]];
+  drawSeats(true);
+  autoSave();
+
+  dragIndex = null;
+}
+
+function toggleFullScreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+function saveImage() {
+  html2canvas(document.getElementById('seatArea')).then(canvas => {
+    const link = document.createElement('a');
+    link.download = 'seating.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  });
+}
+
+function adminPrompt() {
+  const cmd = prompt('암호를 대시죠 백작님?');
+  if (!cmd) return;
+  const parts = cmd.split(' ');
+
+  if (parts[0] === '/matching') {
+    fixedPairs.push([parseInt(parts[1])-1, parseInt(parts[2])-1]);
+    alert('스껄!');
+  }
+
+  if (parts[0] === '/avoid') {
+    avoidPairs.push([parseInt(parts[1])-1, parseInt(parts[2])-1]);
+    alert('야르!');
+  }
+}
+
+function saveData() {
+  localStorage.setItem('students', JSON.stringify(students));
+  localStorage.setItem('pairs', JSON.stringify(fixedPairs));
+  localStorage.setItem('avoid', JSON.stringify(avoidPairs));
+  localStorage.setItem('listText', document.getElementById('list').value);
+  alert('저장됨');
+}
+
+function loadData() {
+  students = JSON.parse(localStorage.getItem('students')) || [];
+  fixedPairs = JSON.parse(localStorage.getItem('pairs')) || [];
+  avoidPairs = JSON.parse(localStorage.getItem('avoid')) || [];
+  document.getElementById('list').value = localStorage.getItem('listText') || '';
+  drawSeats();
+}
+
+function autoSave() {
+  localStorage.setItem('students', JSON.stringify(students));
+}
+</script>
+
+</body>
+</html>
