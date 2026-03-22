@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>이주한쌤 사랑해용~</title>
+<title>1-2 자리배치 프로그램</title>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <style>
 body {
@@ -64,20 +64,21 @@ button:hover {
   box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
-.row { display: flex; justify-content: center; gap: 15px; }
+.row { display: flex; justify-content: center; gap: 10px; }
 .footer { margin-top: 10px; font-style: italic; color: #333; }
 </style>
 </head>
 <body>
 
 <div class="left">
-  <h2> ❤️핑크핑크 자리배치 프로그램❤️</h2>
+  <h2>❤️핑크핑크 자리배치 프로그램❤️</h2>
 
   <label>학생 수: </label>
   <input type="number" id="count" value="30">
   <button onclick="generateList()">리스트 생성</button>
   <button onclick="saveData()">저장</button>
   <button onclick="loadData()">불러오기</button>
+  <button onclick="toggleEditMode()">자리 편집</button>
 
   <h3>번호 / 이름 입력</h3>
   <textarea id="list"></textarea>
@@ -86,10 +87,10 @@ button:hover {
 </div>
 
 <div class="right">
-  <img src="banner_juhan.jpg" class="banner">
+  <img src="banner.jpg" class="banner">
 
-  <label>행: </label><input type="number" id="rows" value="5"><br>
-  <label>열: </label><input type="number" id="cols" value="6"><br>
+  <label>행: </label><input type="number" id="rows" value="6"><br>
+  <label>열: </label><input type="number" id="cols" value="5"><br>
 
   <div class="row">
     <button id="shuffleBtn" onclick="countdownShuffle()">랜덤 배치</button>
@@ -102,7 +103,7 @@ button:hover {
     <button onclick="toggleFullScreen()">전체화면</button>
   </div>
 
-  <div class="footer">답답해서 내가 만든다! made by @workethic._</div>
+  <div class="footer">Made with HIM</div>
 </div>
 
 <script>
@@ -111,6 +112,8 @@ let fixedPairs = [];
 let avoidPairs = [];
 let dragIndex = null;
 let touchIndex = null;
+let seatArray = [];
+let editMode = false;
 
 function generateList() {
   const count = document.getElementById('count').value;
@@ -142,11 +145,26 @@ function countdownShuffle() {
       clearInterval(interval);
       btn.innerText = '랜덤 배치';
       btn.disabled = false;
+      initSeats();
       shuffleSeats();
     }
   }, 1000);
 }
+function initSeats() {
+  const rows = parseInt(document.getElementById('rows').value);
+  const cols = parseInt(document.getElementById('cols').value);
+  const total = rows * cols;
 
+  seatArray = [];
+
+  for (let i = 0; i < total; i++) {
+    if (i < students.length) {
+      seatArray.push(students[i]);
+    } else {
+      seatArray.push(null);
+    }
+  }
+}
 function shuffleSeats() {
   parseList();
 
@@ -213,11 +231,17 @@ function drawSeats(animate=false) {
   grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   grid.innerHTML = '';
 
-  students.forEach((s, index) => {
-    const div = document.createElement('div');
-    div.className = 'seat';
-    div.draggable = true;
+  seatArray.forEach((s, index) => {
+  const div = document.createElement('div');
+  div.className = 'seat';
+  div.draggable = true;
+
+  if (s) {
     div.innerText = s.num + ' ' + s.name;
+  } else {
+    div.innerText = '';
+    div.style.background = '#eee'; // 빈자리 
+  }
 
     if (animate) {
       div.style.transform = 'scale(0.5)';
@@ -250,14 +274,13 @@ function drawSeats(animate=false) {
 }
 
 function handleSwap(targetIndex) {
-  if (dragIndex === null && touchIndex === null) return;
   const from = dragIndex ?? touchIndex;
 
-  const pair = fixedPairs.find(p => p.includes(from));
-  if (pair) {
-    alert('짝은 이동 불가');
-    return;
-  }
+  [seatArray[from], seatArray[targetIndex]] =
+  [seatArray[targetIndex], seatArray[from]];
+
+  drawSeats(true);
+}
 
   [students[from], students[targetIndex]] = [students[targetIndex], students[from]];
   drawSeats(true);
@@ -274,6 +297,11 @@ function toggleFullScreen() {
   }
 }
 
+function toggleEditMode() {
+  editMode = !editMode;
+  alert(editMode ? "자리 편집 모드 ON" : "자리 편집 모드 OFF");
+}
+
 function saveImage() {
   html2canvas(document.getElementById('seatArea')).then(canvas => {
     const link = document.createElement('a');
@@ -284,18 +312,18 @@ function saveImage() {
 }
 
 function adminPrompt() {
-  const cmd = prompt('암호를 대시죠 백작님?');
+  const cmd = prompt('명령어 입력');
   if (!cmd) return;
   const parts = cmd.split(' ');
 
   if (parts[0] === '/matching') {
     fixedPairs.push([parseInt(parts[1])-1, parseInt(parts[2])-1]);
-    alert('스껄!');
+    alert('짝 고정 완료');
   }
 
   if (parts[0] === '/avoid') {
     avoidPairs.push([parseInt(parts[1])-1, parseInt(parts[2])-1]);
-    alert('야르!');
+    alert('이웃 금지 설정 완료');
   }
 }
 
