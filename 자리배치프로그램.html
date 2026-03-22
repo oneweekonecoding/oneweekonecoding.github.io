@@ -115,6 +115,7 @@ let touchIndex = null;
 let fixedSeats = [];
 let seatArray = [];
 let editMode = false;
+let currentTouchTarget = null;
 
 function generateList() {
   const count = document.getElementById('count').value;
@@ -219,33 +220,37 @@ function applyPerfectMatching() {
   });
 }
 function applySeatFix() {
-  const cols = parseInt(document.getElementById('cols').value);
-
   fixedSeats.forEach(pair => {
-    const studentIndex = pair[0];
-    const targetRow = pair[1] - 1;
+    const studentIndex = pair[0]; // n번째 학생
+    const targetSeat = pair[1];   // m번째 자리
 
     if (studentIndex >= students.length) return;
 
-    // 해당 학생 찾기
     const student = students[studentIndex];
 
-    // seatArray에서 제거
+    // 기존 위치 제거
     let currentIndex = seatArray.findIndex(s => s && s.num === student.num);
     if (currentIndex !== -1) {
       seatArray[currentIndex] = null;
     }
+    const targetIndex = targetSeat - 1;
 
-    // 목표 줄 범위 계산
-    const start = targetRow * cols;
-    const end = start + cols;
+    if (targetIndex < 0 || targetIndex >= seatArray.length) return;
 
-    // 빈 자리 찾기
-    for (let i = start; i < end; i++) {
-      if (seatArray[i] === null) {
-        seatArray[i] = student;
-        break;
+    if (seatArray[targetIndex] !== null) {
+      const temp = seatArray[targetIndex];
+      seatArray[targetIndex] = student;
+
+      // 기존 자리로 밀어넣기
+      if (currentIndex !== -1) {
+        seatArray[currentIndex] = temp;
+      } else {
+        // 빈자리 찾기
+        const empty = seatArray.findIndex(s => s === null);
+        if (empty !== -1) seatArray[empty] = temp;
       }
+    } else {
+      seatArray[targetIndex] = student;
     }
   });
 }
@@ -300,18 +305,41 @@ function drawSeats(animate=false) {
     div.addEventListener('dragover', (e) => e.preventDefault());
     div.addEventListener('drop', () => handleSwap(index));
 
-    // Mobile touch
-    div.addEventListener('touchstart', () => touchIndex = index);
-    div.addEventListener('touchend', () => {
-      if (touchIndex !== null && touchIndex !== index) {
-        handleSwap(index);
-      }
-      touchIndex = null;
-    });
+    // Mobile touch 개선 + 하이라이트 + 스크롤 방지
+div.addEventListener('touchstart', (e) => {
+  touchIndex = index;
+  div.classList.add('selected'); // 시작 자리 강조
+});
 
-    grid.appendChild(div);
-  });
-}
+div.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+
+  const touch = e.touches[0];
+  const element = document.elementFromPoint(touch.clientX, touch.clientY);
+
+  document.querySelectorAll('.seat').forEach(el => el.classList.remove('selected'));
+
+  if (element && element.classList.contains('seat')) {
+    currentTouchTarget = [...document.querySelectorAll('.seat')].indexOf(element);
+    element.classList.add('selected'); // ⭐ 드래그 중 위치 강조
+  }
+}, { passive: false });
+
+div.addEventListener('touchend', () => {
+  if (
+    touchIndex !== null &&
+    currentTouchTarget !== null &&
+    touchIndex !== currentTouchTarget
+  ) {
+    handleSwap(currentTouchTarget);
+  }
+
+  // 강조 제거
+  document.querySelectorAll('.seat').forEach(el => el.classList.remove('selected'));
+
+  touchIndex = null;
+  currentTouchTarget = null;
+});
 
 function handleSwap(targetIndex) {
   const from = dragIndex ?? touchIndex;
@@ -358,17 +386,17 @@ function adminPrompt() {
 
   if (parts[0] === '/matching') {
     fixedPairs.push([parseInt(parts[1])-1, parseInt(parts[2])-1]);
-    alert('짝 고정 완료');
+    alert('쓰껄');
   }
   
   if (parts[0] === '/seat') {
   fixedSeats.push([parseInt(parts[1])-1, parseInt(parts[2])-1]);
-  alert('자리 고정 완료');
+    alert('야르');
   }
   
   if (parts[0] === '/avoid') {
     avoidPairs.push([parseInt(parts[1])-1, parseInt(parts[2])-1]);
-    alert('이웃 금지 설정 완료');
+    alert('아자스');
   }
 }
 
