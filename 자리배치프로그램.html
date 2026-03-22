@@ -87,7 +87,7 @@ button:hover {
 </div>
 
 <div class="right">
-  <img src="banner.jpg" class="banner">
+  <img src="banner_juhan.jpg" class="banner">
 
   <label>행: </label><input type="number" id="rows" value="6"><br>
   <label>열: </label><input type="number" id="cols" value="5"><br>
@@ -103,7 +103,7 @@ button:hover {
     <button onclick="toggleFullScreen()">전체화면</button>
   </div>
 
-  <div class="footer">Made with HIM</div>
+  <div class="footer">Made by @workethic._</div>
 </div>
 
 <script>
@@ -167,6 +167,7 @@ function initSeats() {
 }
 function shuffleSeats() {
   parseList();
+  initSeats();
 
   let valid = false;
 
@@ -276,17 +277,16 @@ function drawSeats(animate=false) {
 function handleSwap(targetIndex) {
   const from = dragIndex ?? touchIndex;
 
+  if (from === null || from === undefined) return;
+  
   [seatArray[from], seatArray[targetIndex]] =
   [seatArray[targetIndex], seatArray[from]];
 
   drawSeats(true);
-}
-
-  [students[from], students[targetIndex]] = [students[targetIndex], students[from]];
-  drawSeats(true);
   autoSave();
 
   dragIndex = null;
+  touchIndex = null;
 }
 
 function toggleFullScreen() {
