@@ -146,7 +146,6 @@ function countdownShuffle() {
       clearInterval(interval);
       btn.innerText = '랜덤 배치';
       btn.disabled = false;
-      initSeats();
       shuffleSeats();
     }
   }, 1000);
@@ -168,24 +167,29 @@ function initSeats() {
 }
 function shuffleSeats() {
   parseList();
-  shuffle students
-  initSeats(); //setarry 적용
-  applyPerfectMatching();
-  applySeatFix(); //자리강
-  drawSeats(true);
-  let valid = false;
 
-  while (!valid) {
+  let valid = false;
+  let tries = 0;
+
+  while (!valid && tries < 1000) {
+    tries++;
+
+    // 1. 학생 섞기
     for (let i = students.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [students[i], students[j]] = [students[j], students[i]];
     }
 
+    initSeats();
     applyPerfectMatching();
+
     valid = checkAvoid();
-    applySeatFix();
+
+    if (valid) {
+    applySeatFix(); 
+    }
   }
-  initSeats();
+
   drawSeats(true);
   autoSave();
 }
@@ -219,7 +223,7 @@ function applySeatFix() {
 
   fixedSeats.forEach(pair => {
     const studentIndex = pair[0];
-    const targetRow = pair[1];
+    const targetRow = pair[1] - 1;
 
     if (studentIndex >= students.length) return;
 
