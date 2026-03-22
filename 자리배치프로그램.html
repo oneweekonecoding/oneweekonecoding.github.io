@@ -112,6 +112,7 @@ let fixedPairs = [];
 let avoidPairs = [];
 let dragIndex = null;
 let touchIndex = null;
+let fixedSeats = [];
 let seatArray = [];
 let editMode = false;
 
@@ -167,8 +168,11 @@ function initSeats() {
 }
 function shuffleSeats() {
   parseList();
-  initSeats();
-
+  shuffle students
+  initSeats(); //setarry 적용
+  applyPerfectMatching();
+  applySeatFix(); //자리강
+  drawSeats(true);
   let valid = false;
 
   while (!valid) {
@@ -179,6 +183,7 @@ function shuffleSeats() {
 
     applyPerfectMatching();
     valid = checkAvoid();
+    applySeatFix();
   }
   initSeats();
   drawSeats(true);
@@ -209,7 +214,37 @@ function applyPerfectMatching() {
     }
   });
 }
+function applySeatFix() {
+  const cols = parseInt(document.getElementById('cols').value);
 
+  fixedSeats.forEach(pair => {
+    const studentIndex = pair[0];
+    const targetRow = pair[1];
+
+    if (studentIndex >= students.length) return;
+
+    // 해당 학생 찾기
+    const student = students[studentIndex];
+
+    // seatArray에서 제거
+    let currentIndex = seatArray.findIndex(s => s && s.num === student.num);
+    if (currentIndex !== -1) {
+      seatArray[currentIndex] = null;
+    }
+
+    // 목표 줄 범위 계산
+    const start = targetRow * cols;
+    const end = start + cols;
+
+    // 빈 자리 찾기
+    for (let i = start; i < end; i++) {
+      if (seatArray[i] === null) {
+        seatArray[i] = student;
+        break;
+      }
+    }
+  });
+}
 function checkAvoid() {
   const cols = parseInt(document.getElementById('cols').value);
 
@@ -321,7 +356,12 @@ function adminPrompt() {
     fixedPairs.push([parseInt(parts[1])-1, parseInt(parts[2])-1]);
     alert('짝 고정 완료');
   }
-
+  
+  if (parts[0] === '/seat') {
+  fixedSeats.push([parseInt(parts[1])-1, parseInt(parts[2])-1]);
+  alert('자리 고정 완료');
+  }
+  
   if (parts[0] === '/avoid') {
     avoidPairs.push([parseInt(parts[1])-1, parseInt(parts[2])-1]);
     alert('이웃 금지 설정 완료');
