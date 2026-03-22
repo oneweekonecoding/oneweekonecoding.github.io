@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>1-2 자리배치 프로그램</title>
+<title>❤️핑크핑크 자리배치 프로그램❤️</title>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <style>
 body {
@@ -180,7 +180,7 @@ function shuffleSeats() {
     applyPerfectMatching();
     valid = checkAvoid();
   }
-
+  initSeats();
   drawSeats(true);
   autoSave();
 }
@@ -241,7 +241,7 @@ function drawSeats(animate=false) {
     div.innerText = s.num + ' ' + s.name;
   } else {
     div.innerText = '';
-    div.style.background = '#eee'; // 빈자리 
+    div.style.background = editMode ? '#ccc' : '#eee'; 
   }
 
     if (animate) {
@@ -278,6 +278,7 @@ function handleSwap(targetIndex) {
   const from = dragIndex ?? touchIndex;
 
   if (from === null || from === undefined) return;
+  if (!editMode && seatArray[from] === null) return;
   
   [seatArray[from], seatArray[targetIndex]] =
   [seatArray[targetIndex], seatArray[from]];
@@ -340,6 +341,7 @@ function loadData() {
   fixedPairs = JSON.parse(localStorage.getItem('pairs')) || [];
   avoidPairs = JSON.parse(localStorage.getItem('avoid')) || [];
   document.getElementById('list').value = localStorage.getItem('listText') || '';
+  initSeats();
   drawSeats();
 }
 
